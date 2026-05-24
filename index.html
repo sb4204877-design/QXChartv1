@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>QXChart</title>
+<link href="https://cdn.jsdelivr.net/npm/fontsource-montserrat@5.0.0/index.css" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; background: #000; overflow: hidden; touch-action: manipulation; -webkit-text-size-adjust: 100%; }
+body { font-family: 'Montserrat', Arial, sans-serif; }
+
+#logo-stage {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  display: flex; justify-content: center; align-items: center;
+  z-index: 100; transition: z-index 0s 1.5s;
+}
+.logo-container {
+  width: 300px; height: 300px; position: relative; margin: auto;
+  transition: transform 2.5s cubic-bezier(0.25,0.1,0.25,1), opacity 2.5s ease;
+  transform-origin: center 45%;
+}
+.logo-container svg { width: 100%; height: 100%; overflow: visible; display: block; }
+#logo-stage.to-bg .logo-container { transform: scale(2.2) translateY(20px); opacity: 0.03; }
+#logo-stage.to-bg #splashHexFill { fill: transparent; transition: fill 2s ease; }
+.hexagon-border {
+  fill: none; stroke: url(#cyanGrad); stroke-width: 9;
+  stroke-linecap: round; stroke-linejoin: round;
+  animation: drawHex 1.5s ease-out forwards;
+}
+.hexagon {
+  fill: none; stroke: url(#blueGrad); stroke-width: 3;
+  stroke-linecap: round; stroke-linejoin: round;
+  animation: drawHex 1.5s ease-out forwards;
+}
+.bar { animation: growBar 1s ease-out forwards; opacity: 0; fill: #000; stroke: url(#cyanGrad); stroke-width: 2; stroke-linejoin: round; }
+.bar-1 { animation-delay: 0.5s; } .bar-2 { animation-delay: 0.7s; } .bar-3 { animation-delay: 0.9s; }
+.arrow-border { fill: none; stroke: url(#cyanGrad); stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; }
+.arrow { fill: none; stroke: #000; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+@keyframes drawHex { from { stroke-dasharray: 1000; stroke-dashoffset: 1000; } to { stroke-dashoffset: 0; } }
+@keyframes growBar { from { transform: scaleY(0); transform-origin: bottom; opacity: 0; } to { transform: scaleY(1); transform-origin: bottom; opacity: 1; } }
+
+#main-interface {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 50;
+  opacity: 0; pointer-events: none; transition: opacity 1s ease;
+  overflow-y: auto; overflow-x: hidden;
+  scrollbar-width: none; -ms-overflow-style: none;
+  scroll-behavior: smooth;
+}
+#main-interface::-webkit-scrollbar { display: none; }
+#main-interface.visible { opacity: 1; pointer-events: all; }
+
+/* ============ NAVBAR ============ */
+.navbar {
+  position: fixed; top: 0; left: 0; right: 0; height: 65px;
+  display: flex; justify-content: center; align-items: center; padding: 0 40px;
+  background: rgba(5,8,15,0.85); backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255,255,255,0.06); z-index: 200;
+}
+.nav-center { display: flex; align-items: center; width: 100%; max-width: 1200px; justify-content: space-between; }
+.nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; flex-shrink: 0; }
+.nav-brand-logo-wrap { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+.nav-brand-logo-wrap svg { width: 100%; height: 100%; }
+.nav-brand-text { font-size: 18px; font-weight: 700; color: #fff; letter-spacing: 1.5px; }
+.nav-brand-text span { color: #00d2ff; }
+.nav-center-group { display: flex; align-items: center; gap: 4px; }
+.nav-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.nav-btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px;
+  background: transparent; border: none; border-radius: 6px;
+  color: rgba(255,255,255,0.45); font-family: 'Montserrat',sans-serif;
+  font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.25s ease;
+  text-decoration: none; letter-spacing: 0.2px;
+}
+.nav-btn:hover { color: rgba(255,255,255,0.95); background: rgba(255,255,255,0.04); transform: translateY(-1px); }
+.nav-btn svg { width: 14px; height: 14px; opacity: 0.5; transition: opacity 0.25s ease; }
+.nav-btn:hover svg { opacity: 1; }
+
+/* ============ HERO ============ */
+.hero {
+  height: 100vh; min-height: 100vh;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  padding: 0 40px; text-align: center; position: relative; z-index: 10;
+}
+.hero-glow {
+  position: absolute; width: 600px; height: 600px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,210,255,0.055) 0%, transparent 70%);
+  top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none;
+  animation: glowPulse 5s ease-in-out infinite;
+}
+@keyframes glowPulse {
+  0%,100% { opacity: 0.4; transform: translate(-50%,-50%) scale(1); }
+  50% { opacity: 0.85; transform: translate(-50%,-50%) scale(1.15); }
+}
+.hero-title {
+  font-size: clamp(32px,4.8vw,62px); font-weight: 800; color: #fff;
+  line-height: 1.15; margin-bottom: 20px; opacity: 0; animation: fadeUp 0.8s 0.3s forwards;
+}
+.hero-title .hl {
+  background: linear-gradient(135deg,#00d2ff,#00f0ff,#0099cc);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.hero-sub {
+  font-size: clamp(14px,1.7vw,18px); color: rgba(255,255,255,0.48);
+  max-width: 660px; line-height: 1.8; font-weight: 400;
+  opacity: 0; animation: fadeUp 0.8s 0.55s forwards; margin-bottom: 36px;
+}
+.hl-sub { color: #00d2ff; font-weight: 600; }
+.hero-actions {
+  display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+  opacity: 0; animation: fadeUp 0.8s 0.8s forwards;
+}
+.hero-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 13px 30px; border-radius: 10px; font-family: 'Montserrat',sans-serif;
+  font-size: 14px; font-weight: 700; text-decoration: none; transition: all 0.25s ease;
+  letter-spacing: 0.3px; cursor: pointer; border: none;
+}
+.hero-btn.primary {
+  background: linear-gradient(135deg, rgba(0,210,255,0.2), rgba(0,153,204,0.25));
+  border: 1px solid rgba(0,210,255,0.4); color: #00d2ff;
+  box-shadow: 0 0 30px rgba(0,210,255,0.1);
+}
+.hero-btn.primary:hover {
+  background: linear-gradient(135deg, rgba(0,210,255,0.32), rgba(0,153,204,0.38));
+  border-color: rgba(0,210,255,0.6); box-shadow: 0 0 45px rgba(0,210,255,0.18);
+  transform: translateY(-2px);
+}
+.hero-btn.secondary {
+  background: transparent; border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.55);
+}
+.hero-btn.secondary:hover {
+  background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.22);
+  color: rgba(255,255,255,0.85); transform: translateY(-2px);
+}
+@keyframes fadeUp { from { opacity:0; transform:translateY(25px); } to { opacity:1; transform:translateY(0); } }
+
+/* ============ FLOATING STATS ============ */
+.floating-stats {
+  width: 100%; display: flex; justify-content: center; align-items: center;
+  gap: 56px; padding: 0 20px; margin-top: -55px; position: relative; z-index: 20;
+}
+.stat-item-float { text-align: center; opacity: 0; animation: fadeUp 0.8s 1.0s forwards; }
+.stat-number-float { font-size: 15px; font-weight: 800; color: #fff; letter-spacing: -0.5px; line-height: 1; margin-bottom: 3px; }
+.stat-number-float span { color: #00d2ff; }
+.stat-label-float { font-size: 8px; font-weight: 600; color: rgba(255,255,255,0.3); letter-spacing: 1.5px; text-transform: uppercase; }
+.stat-label-float .win-label {
+  color: #00d2ff; font-weight: 800; letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(0,210,255,0.4);
+}
+
+/* ============ SECTION HEADERS ============ */
+.section-header {
+  text-align: center; margin-bottom: 40px;
+  opacity: 0; transform: translateY(30px);
+  transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1);
+}
+.section-header.animate-in { opacity: 1; transform: translateY(0); }
+.section-label {
+  font-size: 11px; font-weight: 700; color: #00d2ff;
+  letter-spacing: 4px; text-transform: uppercase; margin-bottom: 8px; opacity: 0.7;
+}
+.section-title {
+  font-size: clamp(26px,3.2vw,42px); font-weight: 800; color: #fff; line-height: 1.2; margin-bottom: 10px;
+}
+.section-title span {
+  background: linear-gradient(135deg,#00d2ff,#00f0ff);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.section-subtitle {
+  font-size: 14px; color: rgba(255,255,255,0.38); max-width: 520px; margin: 0 auto; line-height: 1.6;
+}
+
+/* ============ STEPS ============ */
+.steps-wrapper { width: 100%; padding: 60px 0 20px; position: relative; }
+.steps-wrapper::before {
+  content:''; position:absolute; top:0; left:0; right:0; bottom:0;
+  background: radial-gradient(ellipse 50% 30% at 30% 40%,rgba(0,210,255,0.02) 0%,transparent 70%);
+  pointer-events:none;
+}
+.step-section {
+  min-height: 70vh; width: 100%;
+  display: flex; align-items: center;
+  padding: 30px 50px; position: relative; overflow: hidden;
+}
+.step-dir-normal { flex-direction: row; }
+.step-dir-reverse { flex-direction: row-reverse; }
+.step-content { flex: 1; padding: 0 30px; }
+.step-number { font-size: 13px; font-weight: 700; color: #00d2ff; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px; }
+.step-title { font-size: clamp(24px,3vw,40px); font-weight: 800; color: #fff; line-height: 1.2; margin-bottom: 18px; }
+.step-desc { font-size: 15px; color: rgba(255,255,255,0.5); line-height: 1.85; max-width: 500px; margin-bottom: 16px; }
+.step-tag { display: block; margin-top: 14px; color: rgba(0,210,255,0.6); font-size: 13px; font-style: italic; line-height: 1.6; }
+.step-btn {
+  display: inline-flex; margin-top: 28px; padding: 11px 26px;
+  background: rgba(0,210,255,0.08); border: 1px solid rgba(0,210,255,0.2);
+  color: #00d2ff; border-radius: 8px; font-size: 13px; font-weight: 600;
+  text-decoration: none; transition: all 0.2s; font-family: 'Montserrat',sans-serif;
+}
+.step-btn:hover { background: rgba(0,210,255,0.15); border-color: rgba(0,210,255,0.4); }
+.step-image-wrap {
+  flex: 1; height: 45vh; border-radius: 20px;
+  background: linear-gradient(135deg,rgba(0,210,255,0.03),rgba(0,210,255,0.005));
+  border: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.step-image-inner {
+  width: 85%; height: 85%; border-radius: 14px;
+  background: radial-gradient(circle at 30% 20%,rgba(0,210,255,0.06) 0%,transparent 50%),
+    linear-gradient(180deg,rgba(10,14,23,0.9),rgba(5,8,15,0.5));
+  border: 1px solid rgba(255,255,255,0.05); position: relative;
+}
+.step-deco-line { position: absolute; height: 1px; background: linear-gradient(90deg,transparent,rgba(0,210,255,0.12),transparent); }
+.step-deco-line-1 { top:25%; left:10%; right:10%; }
+.step-deco-line-2 { top:50%; left:15%; right:15%; }
+.step-deco-line-3 { top:75%; left:10%; right:10%; }
+.step-deco-box { position:absolute; bottom:20%; left:15%; right:15%; height:80px; border-radius:10px; background:rgba(0,210,255,0.03); border:1px solid rgba(0,210,255,0.08); }
+.step-image-label { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:rgba(255,255,255,0.12); font-size:13px; font-weight:600; letter-spacing:2px; text-transform:uppercase; }
+
+.slide-from-left {
+  opacity: 0; transform: translateX(-100vw);
+  transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.slide-from-right {
+  opacity: 0; transform: translateX(100vw);
+  transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.2s, transform 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.2s;
+}
+.step-section.animate-in .slide-from-left { opacity: 1; transform: translateX(0); }
+.step-section.animate-in .slide-from-right { opacity: 1; transform: translateX(0); }
+
+/* ============ INDICATORS SECTION - Full sections with premium reveal animation ============ */
+.indicators-wrapper { width: 100%; position: relative; }
+.indicator-section {
+  min-height: 100vh; width: 100%;
+  display: flex; align-items: center;
+  padding: 40px 50px; position: relative;
+  overflow: hidden;
+}
+.ind-dir-normal { flex-direction: row; }
+.ind-content { flex: 1; padding: 0 30px; }
+.ind-tag { font-size: 13px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px; }
+.ind-tag.cyan { color: #00d2ff; }
+.ind-tag.green { color: #1db954; }
+.ind-title { font-size: clamp(24px,3vw,40px); font-weight: 800; color: #fff; line-height: 1.2; margin-bottom: 18px; }
+.ind-desc { font-size: 15px; color: rgba(255,255,255,0.5); line-height: 1.85; max-width: 500px; margin-bottom: 16px; }
+.ind-feature-list { list-style: none; margin: 20px 0; display: flex; flex-direction: column; gap: 10px; }
+.ind-feature-list li { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,0.55); font-weight: 500; }
+.ind-feature-list li .ind-feat-icon { width: 18px; height: 18px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(0,210,255,0.1); }
+.ind-feature-list li .ind-feat-icon svg { width: 10px; height: 10px; stroke: #00d2ff; fill: none; }
+.ind-feature-list li.free-feat .ind-feat-icon { background: rgba(29,185,84,0.1); }
+.ind-feature-list li.free-feat .ind-feat-icon svg { stroke: #1db954; }
+.ind-cta {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 20px; padding: 11px 26px;
+  background: rgba(0,210,255,0.08); border: 1px solid rgba(0,210,255,0.2);
+  color: #00d2ff; border-radius: 8px; font-size: 13px; font-weight: 600;
+  text-decoration: none; transition: all 0.2s; font-family: 'Montserrat',sans-serif; cursor: pointer;
+}
+.ind-cta:hover { background: rgba(0,210,255,0.15); border-color: rgba(0,210,255,0.4); }
+.ind-cta.tg-cta { background: rgba(29,185,84,0.08); border: 1px solid rgba(29,185,84,0.2); color: #1db954; }
+.ind-cta.tg-cta:hover { background: rgba(29,185,84,0.15); border-color: rgba(29,185,84,0.4); }
+
+.ind-image-wrap {
+  flex: 1; height: 50vh; border-radius: 20px;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+  position: relative;
+}
+.ind-image-wrap::before {
+  content:''; position:absolute; inset:-1px; border-radius:21px; padding:1px;
+  background: linear-gradient(135deg, rgba(0,210,255,0.12), transparent 40%, transparent 60%, rgba(0,210,255,0.06));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+}
+.ind-image-wrap.tg-bg::before {
+  background: linear-gradient(135deg, rgba(29,185,84,0.12), transparent 40%, transparent 60%, rgba(29,185,84,0.06));
+}
+.ind-image-inner {
+  width: 85%; height: 85%; border-radius: 14px; position: relative;
+  background: radial-gradient(circle at 30% 20%,rgba(0,210,255,0.06) 0%,transparent 50%),
+    linear-gradient(180deg,rgba(10,14,23,0.95),rgba(5,8,15,0.5));
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.ind-image-inner.tg-inner {
+  background: radial-gradient(circle at 30% 20%,rgba(29,185,84,0.06) 0%,transparent 50%),
+    linear-gradient(180deg,rgba(10,14,23,0.95),rgba(5,8,15,0.5));
+  border-color: rgba(29,185,84,0.06);
+}
+.ind-deco-line { position: absolute; height: 1px; background: linear-gradient(90deg,transparent,rgba(0,210,255,0.12),transparent); }
+.ind-deco-line.tg { background: linear-gradient(90deg,transparent,rgba(29,185,84,0.12),transparent); }
+.ind-deco-line-1 { top:25%; left:10%; right:10%; }
+.ind-deco-line-2 { top:50%; left:15%; right:15%; }
+.ind-deco-line-3 { top:75%; left:10%; right:10%; }
+.ind-deco-box { position:absolute; bottom:20%; left:15%; right:15%; height:80px; border-radius:10px; background:rgba(0,210,255,0.03); border:1px solid rgba(0,210,255,0.08); }
+.ind-deco-box.tg { background:rgba(29,185,84,0.03); border:1px solid rgba(29,185,84,0.08); }
+.ind-image-label { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:rgba(255,255,255,0.12); font-size:13px; font-weight:600; letter-spacing:2px; text-transform:uppercase; }
+
+/* Premium indicator reveal animations - blur + scale + fade */
+.reveal-content {
+  opacity: 0;
+  transform: translateY(50px) scale(0.95);
+  filter: blur(8px);
+  transition: opacity 0.9s cubic-bezier(0.16,1,0.3,1),
+              transform 0.9s cubic-bezier(0.16,1,0.3,1),
+              filter 0.9s cubic-bezier(0.16,1,0.3,1);
+}
+.reveal-image {
+  opacity: 0;
+  transform: translateY(40px) scale(0.92);
+  filter: blur(10px);
+  transition: opacity 1s cubic-bezier(0.16,1,0.3,1) 0.15s,
+              transform 1s cubic-bezier(0.16,1,0.3,1) 0.15s,
+              filter 1s cubic-bezier(0.16,1,0.3,1) 0.15s;
+}
+.indicator-section.animate-in .reveal-content {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
+.indicator-section.animate-in .reveal-image {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
+
+/* ============ PRICING ============ */
+.pricing-section {
+  min-height: 100vh; width: 100%;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  padding: 75px 40px 30px; position: relative;
+}
+.pricing-section::before {
+  content:''; position:absolute; top:0; left:0; right:0; bottom:0;
+  background: radial-gradient(ellipse 60% 40% at 20% 50%,rgba(0,210,255,0.025) 0%,transparent 70%),
+    radial-gradient(ellipse 50% 35% at 80% 50%,rgba(0,153,204,0.02) 0%,transparent 70%);
+  pointer-events:none;
+}
+.pricing-header { text-align: center; margin-bottom: 28px; }
+.pricing-label { font-size: 11px; font-weight: 700; color: #00d2ff; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 8px; opacity: 0.7; }
+.pricing-title { font-size: clamp(22px,2.8vw,36px); font-weight: 800; color: #fff; line-height: 1.2; margin-bottom: 8px; }
+.pricing-title span { background: linear-gradient(135deg,#00d2ff,#00f0ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+.pricing-subtitle { font-size: 13px; color: rgba(255,255,255,0.38); max-width: 440px; margin: 0 auto; line-height: 1.6; }
+.pricing-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; max-width: 960px; width: 100%; align-items: center; }
+
+.plan-card {
+  background: rgba(255,255,255,0.018); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 18px; padding: 22px 22px 20px;
+  display: flex; flex-direction: column; position: relative;
+  transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease; overflow: hidden;
+}
+.plan-card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(255,255,255,0.06),transparent); }
+.plan-card:hover { transform: translateY(-4px); background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.12); }
+.plan-card.featured { background: rgba(0,210,255,0.04); border: 1px solid rgba(0,210,255,0.22); transform: scale(1.02); }
+.plan-card.featured::before { background: linear-gradient(90deg,transparent,rgba(0,210,255,0.35),transparent); }
+.plan-card.featured:hover { transform: scale(1.02) translateY(-4px); background: rgba(0,210,255,0.07); border-color: rgba(0,210,255,0.38); }
+.plan-card.featured::after { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent 10%,#00d2ff 50%,transparent 90%); border-radius:18px 18px 0 0; }
+
+.plan-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:20px; font-size:9px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:12px; width:fit-content; }
+.plan-badge.badge-free { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.45); }
+.plan-badge.badge-pro { background:rgba(0,210,255,0.1); border:1px solid rgba(0,210,255,0.25); color:#00d2ff; }
+.plan-badge.badge-pro svg { width:10px; height:10px; fill:#00d2ff; }
+.plan-badge.badge-elite { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.09); color:rgba(255,255,255,0.5); }
+
+.plan-name { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 3px; letter-spacing: -0.3px; }
+.plan-tagline { font-size: 11px; color: rgba(255,255,255,0.32); margin-bottom: 14px; font-weight: 500; }
+.plan-price-block { display:flex; align-items:flex-end; gap:4px; margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.06); }
+.plan-price-currency { font-size:15px; font-weight:600; color:rgba(255,255,255,0.5); margin-bottom:4px; }
+.plan-price-amount { font-size:36px; font-weight:800; color:#fff; line-height:1; letter-spacing:-2px; }
+.plan-price-free { font-size:26px; font-weight:800; color:rgba(255,255,255,0.45); letter-spacing:-1px; }
+.plan-price-period { font-size:12px; color:rgba(255,255,255,0.3); margin-bottom:5px; font-weight:500; }
+.plan-price-block.featured-price .plan-price-currency { color:rgba(0,210,255,0.7); }
+.plan-price-block.featured-price .plan-price-amount { color:#00d2ff; }
+.plan-price-block.featured-price .plan-price-period { color:rgba(0,210,255,0.45); }
+
+.plan-features { list-style:none; flex:1; margin-bottom:18px; display:flex; flex-direction:column; gap:8px; }
+.plan-features li { display:flex; align-items:flex-start; gap:8px; font-size:12px; color:rgba(255,255,255,0.55); line-height:1.5; font-weight:500; }
+.plan-features li .feat-icon { width:15px; height:15px; flex-shrink:0; margin-top:1px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+.plan-features li .feat-icon svg { width:9px; height:9px; }
+.feat-icon-free { background:rgba(255,255,255,0.06); } .feat-icon-free svg { stroke:rgba(255,255,255,0.4); fill:none; }
+.feat-icon-pro { background:rgba(0,210,255,0.12); } .feat-icon-pro svg { stroke:#00d2ff; fill:none; }
+.feat-icon-elite { background:rgba(255,255,255,0.07); } .feat-icon-elite svg { stroke:rgba(255,255,255,0.5); fill:none; }
+
+.plan-cta { display:block; width:100%; padding:11px 0; border-radius:9px; font-family:'Montserrat',sans-serif; font-size:12px; font-weight:700; letter-spacing:0.5px; text-align:center; cursor:pointer; transition:all 0.25s ease; text-decoration:none; border:none; }
+.cta-free { background:transparent; border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.55); }
+.cta-free:hover { background:rgba(255,255,255,0.05); border-color:rgba(255,255,255,0.22); color:rgba(255,255,255,0.85); }
+.cta-pro { background:linear-gradient(135deg,rgba(0,210,255,0.18),rgba(0,153,204,0.22)); border:1px solid rgba(0,210,255,0.35); color:#00d2ff; box-shadow:0 0 24px rgba(0,210,255,0.08); }
+.cta-pro:hover { background:linear-gradient(135deg,rgba(0,210,255,0.28),rgba(0,153,204,0.32)); border-color:rgba(0,210,255,0.55); box-shadow:0 0 36px rgba(0,210,255,0.14); transform:translateY(-1px); }
+.cta-elite { background:transparent; border:1px solid rgba(255,255,255,0.12); color:rgba(255,255,255,0.55); }
+.cta-elite:hover { background:rgba(255,255,255,0.04); border-color:rgba(255,255,255,0.2); color:rgba(255,255,255,0.8); transform:translateY(-1px); }
+
+/* ============ MODAL ============ */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); backdrop-filter: blur(12px); z-index: 500; display: none; justify-content: center; align-items: center; }
+.modal-overlay.active { display: flex; }
+.modal-box { background: #0a0e17; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 40px; width: 90%; max-width: 420px; position: relative; animation: modalPop 0.35s ease-out; }
+@keyframes modalPop { from { opacity:0; transform:scale(0.92) translateY(15px); } to { opacity:1; transform:scale(1) translateY(0); } }
+.modal-close { position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; border: none; background: rgba(255,255,255,0.08); border-radius: 50%; color: #fff; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+.modal-close:hover { background: rgba(255,255,255,0.15); }
+.modal-title { font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+.modal-sub { font-size: 13px; color: rgba(255,255,255,0.45); margin-bottom: 28px; }
+.fg { margin-bottom: 16px; }
+.fl { display: block; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); margin-bottom: 5px; }
+.fi { width: 100%; padding: 11px 14px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: #fff; font-family: 'Montserrat',sans-serif; font-size: 13px; outline: none; transition: all 0.2s; }
+.fi:focus { border-color: rgba(255,255,255,0.3); }
+.form-submit { width: 100%; padding: 13px; background: rgba(0,210,255,0.1); border: 1px solid rgba(0,210,255,0.3); color: #00d2ff; border-radius: 10px; font-family: 'Montserrat',sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.25s; margin-top: 8px; }
+.form-submit:hover { background: rgba(0,210,255,0.18); border-color: rgba(0,210,255,0.5); transform: translateY(-1px); }
+.form-footer { text-align: center; margin-top: 16px; font-size: 12px; color: rgba(255,255,255,0.35); }
+.form-footer a { color: #00d2ff; text-decoration: none; cursor: pointer; }
+.ind-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+.ind-card-modal { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.ind-card-modal:hover { background: rgba(0,210,255,0.05); border-color: rgba(0,210,255,0.2); }
+.ind-card-icon { width: 36px; height: 36px; margin: 0 auto 8px; border-radius: 8px; background: rgba(0,210,255,0.08); display: flex; align-items: center; justify-content: center; }
+.ind-card-icon svg { width: 18px; height: 18px; stroke: #00d2ff; fill: none; }
+.ind-card-name { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.8); }
+.ind-card-desc { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 3px; }
+
+/* ============ FOOTER ============ */
+.site-footer { width: 100%; background: rgba(5,8,15,0.95); border-top: 1px solid rgba(255,255,255,0.06); position: relative; overflow: hidden; }
+.site-footer::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(0,210,255,0.15),transparent); }
+.footer-main { max-width: 1200px; margin: 0 auto; padding: 60px 40px 40px; display: grid; grid-template-columns: 280px 1fr; gap: 60px; align-items: start; }
+.footer-brand { display: flex; flex-direction: column; gap: 16px; }
+.footer-brand-top { display: flex; align-items: center; gap: 10px; }
+.footer-brand-logo { width: 38px; height: 38px; }
+.footer-brand-logo svg { width: 100%; height: 100%; }
+.footer-brand-name { font-size: 20px; font-weight: 800; color: #fff; letter-spacing: 1px; }
+.footer-brand-name span { color: #00d2ff; }
+.footer-brand-desc { font-size: 12px; color: rgba(255,255,255,0.35); line-height: 1.7; max-width: 240px; }
+.footer-links-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; }
+.footer-col-title { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.7); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 18px; }
+.footer-col-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.footer-col-list li a { font-size: 12px; color: rgba(255,255,255,0.4); text-decoration: none; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px; }
+.footer-col-list li a:hover { color: #00d2ff; transform: translateX(2px); }
+.footer-col-list li a .dot { width: 4px; height: 4px; border-radius: 50%; background: rgba(0,210,255,0.4); opacity: 0; transition: opacity 0.2s ease; }
+.footer-col-list li a:hover .dot { opacity: 1; }
+.footer-status { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 4px 10px; background: rgba(29,185,84,0.08); border: 1px solid rgba(29,185,84,0.15); border-radius: 20px; }
+.footer-status-dot { width: 6px; height: 6px; border-radius: 50%; background: #1db954; box-shadow: 0 0 6px rgba(29,185,84,0.5); animation: statusPulse 2s ease-in-out infinite; }
+@keyframes statusPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+.footer-status-text { font-size: 10px; font-weight: 600; color: rgba(29,185,84,0.8); letter-spacing: 0.5px; }
+.footer-bottom { max-width: 1200px; margin: 0 auto; padding: 24px 40px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.04); }
+.footer-copyright { font-size: 11px; color: rgba(255,255,255,0.25); letter-spacing: 0.5px; }
+.footer-copyright span { color: #00d2ff; }
+.footer-quick-links { display: flex; align-items: center; gap: 20px; }
+.footer-quick-link { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255,255,255,0.4); text-decoration: none; transition: all 0.2s ease; }
+.footer-quick-link:hover { color: #00d2ff; }
+.footer-quick-link svg { width: 14px; height: 14px; opacity: 0.6; }
+.footer-quick-link:hover svg { opacity: 1; }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width:1024px) {
+  .step-section, .indicator-section { flex-direction: column !important; padding: 50px 30px; gap: 28px; min-height: auto; }
+  .step-image-wrap, .ind-image-wrap { width: 100%; height: 32vh; }
+  .pricing-grid { grid-template-columns: 1fr; max-width: 400px; }
+  .plan-card.featured { transform: scale(1); }
+  .plan-card.featured:hover { transform: translateY(-4px); }
+  .floating-stats { gap: 36px; }
+  .footer-main { grid-template-columns: 1fr; gap: 40px; }
+  .footer-links-grid { grid-template-columns: repeat(2, 1fr); }
+  .slide-from-left, .slide-from-right { transform: translateY(80px) !important; }
+  .slide-from-right { transition-delay: 0.2s !important; }
+  .step-section.animate-in .slide-from-left, .step-section.animate-in .slide-from-right { transform: translateY(0) !important; }
+  .indicator-section .reveal-content { transform: translateY(40px) scale(0.97); filter: blur(6px); }
+  .indicator-section .reveal-image { transform: translateY(30px) scale(0.95); filter: blur(8px); }
+  .indicator-section.animate-in .reveal-content, .indicator-section.animate-in .reveal-image { transform: translateY(0) scale(1); filter: blur(0); }
+}
+@media (max-width:1024px) and (orientation: landscape) {
+  .step-section, .indicator-section { flex-direction: row !important; padding: 50px 40px; gap: 0; min-height: 70vh; }
+  .step-dir-reverse { flex-direction: row-reverse !important; }
+  .step-image-wrap, .ind-image-wrap { width: auto; height: 45vh; }
+  .step-content, .ind-content { padding: 0 30px; }
+  .slide-from-left { transform: translateX(-100vw) !important; }
+  .slide-from-right { transform: translateX(100vw) !important; transition-delay: 0.2s !important; }
+  .step-section.animate-in .slide-from-left, .step-section.animate-in .slide-from-right { transform: translateX(0) !important; }
+}
+@media (max-width:640px) {
+  .navbar { padding: 0 20px; }
+  .nav-brand-text { font-size: 16px; }
+  .nav-btn { padding: 6px 10px; font-size: 12px; }
+  .hero { padding: 80px 20px; }
+  .hero-actions { flex-direction: column; align-items: center; }
+  .step-section, .indicator-section { padding: 60px 20px 30px; min-height: auto; }
+  .step-content, .ind-content { padding: 0; }
+  .step-image-wrap, .ind-image-wrap { height: 28vh; }
+  .pricing-section { padding: 85px 20px 50px; }
+  .floating-stats { gap: 20px; flex-wrap: wrap; }
+  .stat-number-float { font-size: 13px; }
+  .footer-main { padding: 40px 20px 30px; }
+  .footer-links-grid { grid-template-columns: 1fr 1fr; gap: 24px; }
+  .footer-bottom { flex-direction: column; gap: 12px; padding: 20px; }
+}
+</style>
+<base target="_blank">
+</head>
+<body>
+
+<!-- ==================== LOGO SPLASH ==================== -->
+<div id="logo-stage">
+  <div class="logo-container" id="logoContainer">
+    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#00d2ff"/>
+          <stop offset="40%" style="stop-color:#0099cc"/>
+          <stop offset="100%" style="stop-color:#00f0ff"/>
+        </linearGradient>
+        <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#09111f"/>
+          <stop offset="50%" style="stop-color:#000"/>
+          <stop offset="100%" style="stop-color:#070d18"/>
+        </linearGradient>
+        <clipPath id="hexagonClip">
+          <path d="M100 15 L160 50 L160 120 L100 155 L40 120 L40 50 Z"/>
+        </clipPath>
+      </defs>
+      <path id="splashHexFill" d="M100 15 L160 50 L160 120 L100 155 L40 120 L40 50 Z" fill="#000"/>
+      <g clip-path="url(#hexagonClip)">
+        <rect class="bar bar-1" x="65" y="110" width="18" height="50" rx="2"/>
+        <rect class="bar bar-2" x="91" y="85" width="18" height="75" rx="2"/>
+        <rect class="bar bar-3" x="117" y="60" width="18" height="100" rx="2"/>
+      </g>
+      <path class="hexagon-border" d="M100 15 L160 50 L160 120 L100 155 L40 120 L40 50 Z"/>
+      <path class="hexagon" d="M100 15 L160 50 L160 120 L100 155 L40 120 L40 50 Z"/>
+      <path id="arrowPathRef" d="M35 125 L75 90 L100 105 L165 45" fill="none" stroke="none"/>
+      <path class="arrow-border" d="M35 125 L75 90 L100 105 L165 45"/>
+      <path class="arrow" d="M35 125 L75 90 L100 105 L165 45"/>
+      <g id="arrowHeadGroup" style="opacity:0;transform:translate(0px,0px) rotate(0deg);">
+        <path d="M-25 -15 L12 0 L-25 15 Z" fill="#000" stroke="#00d2ff" stroke-width="2" stroke-linejoin="round"/>
+      </g>
+    </svg>
+  </div>
+</div>
+
+<!-- ==================== MAIN INTERFACE ==================== -->
+<div id="main-interface">
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="nav-center">
+      <a class="nav-brand" href="#">
+        <div class="nav-brand-logo-wrap">
+          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="navCg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#00d2ff"/><stop offset="40%" style="stop-color:#0099cc"/><stop offset="100%" style="stop-color:#00f0ff"/></linearGradient>
+              <linearGradient id="navBg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#09111f"/><stop offset="50%" style="stop-color:#000"/><stop offset="100%" style="stop-color:#070d18"/></linearGradient>
+              <clipPath id="navHc"><path d="M100 15 L160 50 L160 120 L100 155 L40 120 L40 50 Z"/></clipPath>
+            </defs>
+            <path d="M100 15 L160 50 L160 120 L100 155 L40 120 L40 50 Z" fill="#000"/>
+            <g clip-path="url(#navHc)">
+              <rect class="nav-bar nav-bar-1" x="65" y="110" width="18" height="50" rx="2" fill="#000" stroke="url(#navCg)" stroke-width="2" stroke-linejoin="round"/>
+              <rect class="nav-bar nav-bar-2" x="91" y="85" width="18" height="75" rx="2" fill="#000" stroke="url(#navCg)" stroke-width="2" stroke-linejoin="round"/>
+              <rect class="nav-bar nav-bar-3" x="117" y="60" width="18" height="100" rx="2" fill="#000" stroke="url(#navCg)" stroke-width="2" stroke-linejoin="round"/>
+            </g>
+            <path class="nav-hex-border" d="M100 15 L160 50 L160 120 L100 155 L40 120 L40 50 Z" fill="none" stroke="url(#navCg)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M100 15 L160 50 L160 120 L100 155 L40 120 L40 50 Z" fill="none" stroke="url(#navBg)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path id="navArrowPathRef" d="M35 125 L75 90 L100 105 L165 45" fill="none" stroke="none"/>
+            <path class="nav-arrow-border" d="M35 125 L75 90 L100 105 L165 45" fill="none" stroke="url(#navCg)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+            <path class="nav-arrow" d="M35 125 L75 90 L100 105 L165 45" fill="none" stroke="#000" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+            <g id="navArrowHead" style="opacity:0;transform:translate(0px,0px) rotate(0deg);"><path d="M-25 -15 L12 0 L-25 15 Z" fill="#000" stroke="#00d2ff" stroke-width="2" stroke-linejoin="round"/></g>
+          </svg>
+        </div>
+        <div class="nav-brand-text">QX<span>Chart</span></div>
+      </a>
+      <div class="nav-center-group">
+        <a class="nav-btn" onclick="openModal('indicators')">Indicators</a>
+        <a class="nav-btn" href="#how-it-works">How It Works</a>
+        <a class="nav-btn" href="#pricing">Pricing</a>
+      </div>
+      <div class="nav-actions">
+        <a href="#" class="nav-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download</a>
+        <a class="nav-btn" onclick="openModal('login')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Login</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== HERO ===== -->
+  <section class="hero" id="sec-hero">
+    <div class="hero-glow"></div>
+    <h1 class="hero-title">Professional-Grade<br><span class="hl">Market Analysis</span></h1>
+    <p class="hero-sub">Professional-grade analysis for real and <span class="hl-sub">OTC</span> markets on <span class="hl-sub">Quotex</span>. Build powerful <span class="hl-sub">JavaScript</span> indicators, track multiple assets and timeframes in <span class="hl-sub">real time</span> with speed and precision.</p>
+    <div class="hero-actions">
+      <a href="#pricing" class="hero-btn primary">Get Started</a>
+      <a href="#pricing" class="hero-btn secondary">View Pricing</a>
+    </div>
+  </section>
+
+  <!-- ===== FLOATING STATS ===== -->
+  <div class="floating-stats" id="floating-stats">
+    <div class="stat-item-float"><div class="stat-number-float" data-target="3.2" data-suffix="K+" data-decimals="true">0<span>K+</span></div><div class="stat-label-float"><span class="win-label">WIN</span> Signals</div></div>
+    <div class="stat-item-float"><div class="stat-number-float" data-target="90" data-suffix="+" data-decimals="false">0<span>+</span></div><div class="stat-label-float">Indicators</div></div>
+    <div class="stat-item-float"><div class="stat-number-float" data-target="99.9" data-suffix="%" data-decimals="true">0<span>%</span></div><div class="stat-label-float">Uptime</div></div>
+    <div class="stat-item-float"><div class="stat-number-float" style="font-size:12px;letter-spacing:0.5px;color:#00d2ff;">Real-Time</div><div class="stat-label-float">Data</div></div>
+  </div>
+
+  <!-- ===== HOW IT WORKS ===== -->
+  <div class="steps-wrapper" id="how-it-works">
+    <div class="section-header" id="stepsHeader">
+      <div class="section-label">How It Works</div>
+      <h2 class="section-title">Get Started in <span>3 Steps</span></h2>
+      <p class="section-subtitle">From download to market analysis in minutes. Simple, fast, and powerful.</p>
+    </div>
+
+    <section class="step-section step-dir-normal">
+      <div class="step-image-wrap slide-from-left">
+        <div class="step-image-inner">
+          <div class="step-deco-line step-deco-line-1"></div>
+          <div class="step-deco-line step-deco-line-2"></div>
+          <div class="step-deco-line step-deco-line-3"></div>
+          <div class="step-deco-box"></div>
+          <div class="step-image-label">Download</div>
+        </div>
+      </div>
+      <div class="step-content slide-from-right">
+        <div class="step-number">Step 01</div>
+        <h2 class="step-title">Download & Connect</h2>
+        <p class="step-desc">Download the platform, install it in seconds, create your account, and connect using your activation license from the official Telegram bot.</p>
+        <span class="step-tag">Instant access to real and OTC market data.</span>
+        <a href="#" class="step-btn">Download Now</a>
+      </div>
+    </section>
+
+    <section class="step-section step-dir-reverse">
+      <div class="step-image-wrap slide-from-right">
+        <div class="step-image-inner">
+          <div class="step-deco-line step-deco-line-1"></div>
+          <div class="step-deco-line step-deco-line-2"></div>
+          <div class="step-deco-line step-deco-line-3"></div>
+          <div class="step-deco-box"></div>
+          <div class="step-image-label">Customize</div>
+        </div>
+      </div>
+      <div class="step-content slide-from-left">
+        <div class="step-number">Step 02</div>
+        <h2 class="step-title">Activate & Customize</h2>
+        <p class="step-desc">Unlock premium indicators with your license or install community indicators directly from the Telegram channel using the built-in JavaScript editor.</p>
+        <span class="step-tag">Fast, flexible, and easy to customize.</span>
+      </div>
+    </section>
+
+    <section class="step-section step-dir-normal">
+      <div class="step-image-wrap slide-from-left">
+        <div class="step-image-inner">
+          <div class="step-deco-line step-deco-line-1"></div>
+          <div class="step-deco-line step-deco-line-2"></div>
+          <div class="step-deco-line step-deco-line-3"></div>
+          <div class="step-deco-box"></div>
+          <div class="step-image-label">Analyze</div>
+        </div>
+      </div>
+      <div class="step-content slide-from-right">
+        <div class="step-number">Step 03</div>
+        <h2 class="step-title">Analyze The Market</h2>
+        <p class="step-desc">Monitor multiple pairs and multiple timeframes simultaneously through a powerful professional-grade charting interface.</p>
+        <span class="step-tag">Built for precision trading.</span>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== INDICATORS SECTION (Full viewport sections with premium reveal) ===== -->
+  <div class="indicators-wrapper" id="indicators">
+    <div class="section-header" id="indHeader">
+      <div class="section-label">Indicators</div>
+      <h2 class="section-title">Powerful <span>Trading Indicators</span></h2>
+      <p class="section-subtitle">Access a rich library of built-in, premium, and community-built indicators to enhance your trading strategy.</p>
+    </div>
+
+    <!-- Indicator 1: How to Use -->
+    <section class="indicator-section ind-dir-normal">
+      <div class="ind-content reveal-content">
+        <div class="ind-tag cyan">Getting Started</div>
+        <h2 class="ind-title">How to Use Indicators</h2>
+        <p class="ind-desc">Adding indicators to your chart is simple. Open the indicators panel, search for the one you need, and click to attach it directly to your chart. Configure settings and start analyzing instantly.</p>
+        <ul class="ind-feature-list">
+          <li><span class="ind-feat-icon"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>One-click install on any chart</li>
+          <li><span class="ind-feat-icon"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Customize colors and parameters</li>
+          <li><span class="ind-feat-icon"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Apply to multiple timeframes</li>
+          <li><span class="ind-feat-icon"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Save your favorite setups</li>
+        </ul>
+        <a href="#" class="ind-cta">Learn More</a>
+      </div>
+      <div class="ind-image-wrap reveal-image">
+        <div class="ind-image-inner">
+          <div class="ind-deco-line ind-deco-line-1"></div>
+          <div class="ind-deco-line ind-deco-line-2"></div>
+          <div class="ind-deco-line ind-deco-line-3"></div>
+          <div class="ind-deco-box"></div>
+          <div class="ind-image-label">How to Use</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Indicator 2: Premium -->
+    <section class="indicator-section ind-dir-normal">
+      <div class="ind-content reveal-content">
+        <div class="ind-tag cyan">Exclusive Access</div>
+        <h2 class="ind-title">Premium Indicators</h2>
+        <p class="ind-desc">Unlock powerful advanced indicators with your Pro or Elite plan. These professionally crafted tools give you an edge with sophisticated algorithms and real-time signals.</p>
+        <ul class="ind-feature-list">
+          <li><span class="ind-feat-icon"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Advanced multi-signal detection</li>
+          <li><span class="ind-feat-icon"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Smart trend reversal alerts</li>
+          <li><span class="ind-feat-icon"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Volume profile & order flow tools</li>
+          <li><span class="ind-feat-icon"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Custom JS editing support</li>
+        </ul>
+        <a href="#pricing" class="ind-cta">View Plans</a>
+      </div>
+      <div class="ind-image-wrap reveal-image">
+        <div class="ind-image-inner">
+          <div class="ind-deco-line ind-deco-line-1"></div>
+          <div class="ind-deco-line ind-deco-line-2"></div>
+          <div class="ind-deco-line ind-deco-line-3"></div>
+          <div class="ind-deco-box"></div>
+          <div class="ind-image-label">Premium</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Indicator 3: Free Community -->
+    <section class="indicator-section ind-dir-normal">
+      <div class="ind-content reveal-content">
+        <div class="ind-tag green">Free on Telegram</div>
+        <h2 class="ind-title">Free Community Indicators</h2>
+        <p class="ind-desc">Access a growing collection of free community-built indicators shared directly on our Telegram channel. Download, install, and start using them at no cost.</p>
+        <ul class="ind-feature-list">
+          <li class="free-feat"><span class="ind-feat-icon"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>RSI, MACD & Moving Averages</li>
+          <li class="free-feat"><span class="ind-feat-icon"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Bollinger Bands & Stochastic</li>
+          <li class="free-feat"><span class="ind-feat-icon"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Custom community scripts</li>
+          <li class="free-feat"><span class="ind-feat-icon"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Updated weekly by developers</li>
+        </ul>
+        <a href="#" class="ind-cta tg-cta">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+          Join Telegram
+        </a>
+      </div>
+      <div class="ind-image-wrap tg-bg reveal-image">
+        <div class="ind-image-inner tg-inner">
+          <div class="ind-deco-line ind-deco-line-1 tg"></div>
+          <div class="ind-deco-line ind-deco-line-2 tg"></div>
+          <div class="ind-deco-line ind-deco-line-3 tg"></div>
+          <div class="ind-deco-box tg"></div>
+          <div class="ind-image-label" style="color:rgba(29,185,84,0.12);">Community</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===== PRICING ===== -->
+  <section class="pricing-section" id="pricing">
+    <div class="pricing-header">
+      <div class="pricing-label">Pricing</div>
+      <h2 class="pricing-title">Choose Your <span>Plan</span></h2>
+      <p class="pricing-subtitle">Start free, upgrade when you're ready. All plans include the core charting platform.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="plan-card">
+        <div class="plan-badge badge-free">Free Trial</div>
+        <div class="plan-name">Free Trial</div>
+        <div class="plan-tagline">7 Days Free</div>
+        <div class="plan-price-block"><span class="plan-price-free">Free</span></div>
+        <ul class="plan-features">
+          <li><span class="feat-icon feat-icon-free"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Access to the platform for 7 days</li>
+          <li><span class="feat-icon feat-icon-free"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Experience the charting interface</li>
+          <li><span class="feat-icon feat-icon-free"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Access to selected free indicators</li>
+          <li><span class="feat-icon feat-icon-free"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Monitor multiple pairs and timeframes</li>
+          <li><span class="feat-icon feat-icon-free"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Built-in JavaScript editor</li>
+        </ul>
+        <a href="#" class="plan-cta cta-free">Start Free</a>
+      </div>
+      <div class="plan-card featured">
+        <div class="plan-badge badge-pro">
+          <svg viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg"><polygon points="6,1 7.5,4.5 11,5 8.5,7.5 9,11 6,9.5 3,11 3.5,7.5 1,5 4.5,4.5"/></svg>
+          Recommended
+        </div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-tagline">Most Popular Choice</div>
+        <div class="plan-price-block featured-price">
+          <span class="plan-price-currency">$</span>
+          <span class="plan-price-amount">15</span>
+          <span class="plan-price-period">/ month</span>
+        </div>
+        <ul class="plan-features">
+          <li><span class="feat-icon feat-icon-pro"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Full platform access</li>
+          <li><span class="feat-icon feat-icon-pro"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Activate premium indicators</li>
+          <li><span class="feat-icon feat-icon-pro"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Download community indicators</li>
+          <li><span class="feat-icon feat-icon-pro"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Faster and more stable performance</li>
+          <li><span class="feat-icon feat-icon-pro"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Multi-chart and multi-timeframe monitoring</li>
+          <li><span class="feat-icon feat-icon-pro"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Continuous updates</li>
+        </ul>
+        <a href="#" class="plan-cta cta-pro">Get Pro</a>
+      </div>
+      <div class="plan-card">
+        <div class="plan-badge badge-elite">Elite</div>
+        <div class="plan-name">Elite</div>
+        <div class="plan-tagline">For Advanced Traders</div>
+        <div class="plan-price-block">
+          <span class="plan-price-currency">$</span>
+          <span class="plan-price-amount">30</span>
+          <span class="plan-price-period">/ month</span>
+        </div>
+        <ul class="plan-features">
+          <li><span class="feat-icon feat-icon-elite"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Everything included in Pro</li>
+          <li><span class="feat-icon feat-icon-elite"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Additional exclusive indicators</li>
+          <li><span class="feat-icon feat-icon-elite"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Early access to new features</li>
+          <li><span class="feat-icon feat-icon-elite"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Higher performance under heavy usage</li>
+          <li><span class="feat-icon feat-icon-elite"><svg viewBox="0 0 12 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg></span>Faster support response</li>
+        </ul>
+        <a href="#" class="plan-cta cta-elite">Go Elite</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="site-footer">
+    <div class="footer-main">
+      <div class="footer-brand">
+        <div class="footer-brand-top">
+          <div class="footer-brand-logo">
+            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="footCg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#00d2ff"/><stop offset="40%" style="stop-color:#0099cc"/><stop offset="100%" style="stop-color:#00f0ff"/></linearGradient>
+                <linearGradient id="footBg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#09111f"/><stop offset="50%" style="stop-color:#000"/><stop offset="100%" style="stop-color:#070d18"/></linearGradient>
+                <clipPath id="footHc"><path d="M100 15 L160 50 L160 120 L100 155 L40 120 L40 50 Z"/></clipPath>
+              </defs>
+              <path d="M100 15 L160 50 L160 120 L100 155 L40 120 L40 50 Z" fill="#000"/>
+              <g clip-path="url(#footHc)">
+                <rect x="65" y="110" width="18" height="50" rx="2" fill="#000" stroke="url(#footCg)" stroke-width="2" stroke-linejoin="round"/>
+                <rect x="91" y="85" width="18" height="75" rx="2" fill="#000" stroke="url(#footCg)" stroke-width="2" stroke-linejoin="round"/>
+                <rect x="117" y="60" width="18" height="100" rx="2" fill="#000" stroke="url(#footCg)" stroke-width="2" stroke-linejoin="round"/>
+              </g>
+              <path d="M100 15 L160 50 L160 120 L100 155 L40 120 L40 50 Z" fill="none" stroke="url(#footCg)" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M100 15 L160 50 L160 120 L100 155 L40 120 L40 50 Z" fill="none" stroke="url(#footBg)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M35 125 L75 90 L100 105 L165 45" fill="none" stroke="url(#footCg)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M35 125 L75 90 L100 105 L165 45" fill="none" stroke="#000" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+              <g><path d="M-25 -15 L12 0 L-25 15 Z" fill="#000" stroke="#00d2ff" stroke-width="2" stroke-linejoin="round" transform="translate(165,45) rotate(-32)"/></g>
+            </svg>
+          </div>
+          <div class="footer-brand-name">QX<span>Chart</span></div>
+        </div>
+        <p class="footer-brand-desc">Professional-grade market analysis platform for real and OTC markets. Built for precision trading with powerful JavaScript indicators.</p>
+        <div class="footer-status">
+          <div class="footer-status-dot"></div>
+          <span class="footer-status-text">System Online — 99.9% Uptime</span>
+        </div>
+      </div>
+      <div class="footer-links-grid">
+        <div class="footer-col"><div class="footer-col-title">Platform</div><ul class="footer-col-list"><li><a href="#indicators"><span class="dot"></span>Indicators</a></li><li><a href="#pricing"><span class="dot"></span>Pricing Plans</a></li><li><a href="#"><span class="dot"></span>Download Platform</a></li><li><a href="#how-it-works"><span class="dot"></span>How It Works</a></li><li><a href="#" onclick="openModal('login')"><span class="dot"></span>Dashboard</a></li></ul></div>
+        <div class="footer-col"><div class="footer-col-title">Resources</div><ul class="footer-col-list"><li><a href="#"><span class="dot"></span>Documentation</a></li><li><a href="#"><span class="dot"></span>Community Indicators</a></li><li><a href="#"><span class="dot"></span>Tutorials & Guides</a></li><li><a href="#"><span class="dot"></span>FAQ</a></li></ul></div>
+        <div class="footer-col"><div class="footer-col-title">Support</div><ul class="footer-col-list"><li><a href="#"><span class="dot"></span>Telegram Support</a></li><li><a href="#"><span class="dot"></span>Help Center</a></li><li><a href="#"><span class="dot"></span>Contact Us</a></li><li><a href="#"><span class="dot"></span>Report a Problem</a></li></ul></div>
+        <div class="footer-col"><div class="footer-col-title">Legal</div><ul class="footer-col-list"><li><a href="#"><span class="dot"></span>Terms of Service</a></li><li><a href="#"><span class="dot"></span>Privacy Policy</a></li><li><a href="#"><span class="dot"></span>Risk Disclaimer</a></li></ul></div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-copyright">&copy; 2026 <span>QXChart</span>. All rights reserved.</div>
+      <div class="footer-quick-links">
+        <a href="#" class="footer-quick-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download</a>
+        <a href="#" class="footer-quick-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Telegram</a>
+        <a href="#" class="footer-quick-link" onclick="openModal('login')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Login</a>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- LOGIN MODAL -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <div class="modal-title">Welcome to QXChart</div>
+    <div class="modal-sub">Sign in to access your trading dashboard</div>
+    <div class="fg"><label class="fl">Email Address</label><input type="email" class="fi" placeholder="you@example.com"></div>
+    <div class="fg"><label class="fl">Password</label><input type="password" class="fi" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"></div>
+    <button class="form-submit">Sign In</button>
+    <div class="form-footer">Don't have an account? <a onclick="closeModal()">Contact Support</a></div>
+  </div>
+</div>
+
+<!-- INDICATORS MODAL -->
+<div class="modal-overlay" id="indicatorsModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <div class="modal-title">Indicators</div>
+    <div class="modal-sub">Select an indicator to add to your chart</div>
+    <div class="ind-grid">
+      <div class="ind-card-modal"><div class="ind-card-icon"><svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><div class="ind-card-name">RSI</div><div class="ind-card-desc">Relative Strength</div></div>
+      <div class="ind-card-modal"><div class="ind-card-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 4-10"/></svg></div><div class="ind-card-name">MACD</div><div class="ind-card-desc">Trend Following</div></div>
+      <div class="ind-card-modal"><div class="ind-card-icon"><svg viewBox="0 0 24 24"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg></div><div class="ind-card-name">Volume</div><div class="ind-card-desc">Trade Volume</div></div>
+      <div class="ind-card-modal"><div class="ind-card-icon"><svg viewBox="0 0 24 24"><path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/></svg></div><div class="ind-card-name">Bollinger</div><div class="ind-card-desc">Volatility Bands</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+document.addEventListener('gesturestart',function(e){e.preventDefault();},{passive:false});
+document.addEventListener('gesturechange',function(e){e.preventDefault();},{passive:false});
+document.addEventListener('gestureend',function(e){e.preventDefault();},{passive:false});
+document.addEventListener('touchmove',function(e){if(e.touches.length>1)e.preventDefault();},{passive:false});
+document.addEventListener('wheel',function(e){if(e.ctrlKey)e.preventDefault();},{passive:false});
+document.addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&(e.key==='='||e.key==='-'||e.key==='0'))e.preventDefault();});
+
+var mainUI=document.getElementById('main-interface');
+mainUI.addEventListener('wheel',function(e){
+  e.preventDefault();
+  mainUI.scrollTop+=e.deltaY*1.2;
+},{passive:false});
+
+/* Splash arrow */
+var pathRef=document.getElementById('arrowPathRef'),pathLine=document.querySelector('.arrow'),pathBorder=document.querySelector('.arrow-border'),arrowHeadGroup=document.getElementById('arrowHeadGroup'),logoStage=document.getElementById('logo-stage');
+
+function startSplashArrow(){
+  if(!pathRef||!pathLine||!pathBorder||!arrowHeadGroup)return;
+  var tl=pathRef.getTotalLength();
+  [pathLine,pathBorder].forEach(function(p){p.style.strokeDasharray=tl;p.style.strokeDashoffset=tl;});
+  arrowHeadGroup.style.opacity='0';arrowHeadGroup.style.transform='translate(0px,0px) rotate(0deg)';
+  var st=performance.now()+500;
+  function step(now){
+    var el=now-st;
+    if(el<0){requestAnimationFrame(step);return;}
+    var rp=Math.min(el/2000,1),prog=1-Math.pow(1-rp,3),cl=tl*prog;
+    pathLine.style.strokeDashoffset=tl-cl;pathBorder.style.strokeDashoffset=tl-cl;
+    if(prog>=0.95){
+      var p1=pathRef.getPointAtLength(Math.max(0,cl-4)),p2=pathRef.getPointAtLength(Math.min(tl,cl+4));
+      var ang=Math.atan2(p2.y-p1.y,p2.x-p1.x)*(180/Math.PI),ep=pathRef.getPointAtLength(cl);
+      arrowHeadGroup.style.transform='translate('+ep.x+'px,'+ep.y+'px) rotate('+ang+'deg)';
+      arrowHeadGroup.style.opacity=Math.min(1,(prog-0.95)*20);
+    }else{arrowHeadGroup.style.opacity='0';}
+    if(rp<1)requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+startSplashArrow();
+
+/* Stats counter */
+function animateCounter(el,target,suffix,decimals){
+  var start=performance.now(),duration=2000;
+  function step(now){
+    var p=Math.min((now-start)/duration,1),ease=1-Math.pow(1-p,4);
+    var val=(target*ease);
+    var textNode=null;
+    for(var i=0;i<el.childNodes.length;i++){
+      if(el.childNodes[i].nodeType===3){textNode=el.childNodes[i];break;}
+    }
+    if(textNode){textNode.textContent=decimals?val.toFixed(1):Math.floor(val);}
+    if(p<1)requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function triggerStatsAnimation(){
+  var bar=document.getElementById('floating-stats');
+  if(!bar)return;
+  var statItems=bar.querySelectorAll('.stat-number-float[data-target]');
+  statItems.forEach(function(item,idx){
+    setTimeout(function(){
+      var target=parseFloat(item.getAttribute('data-target'));
+      var suffix=item.getAttribute('data-suffix')||'';
+      var decimals=item.getAttribute('data-decimals')==='true';
+      animateCounter(item,target,suffix,decimals);
+    },idx*250);
+  });
+}
+
+setTimeout(function(){
+  logoStage.classList.add('to-bg');
+  setTimeout(function(){
+    logoStage.style.zIndex='1';
+    mainUI.classList.add('visible');
+    setTimeout(triggerStatsAnimation,1000);
+  },1500);
+},4500);
+
+/* Nav arrow */
+var navPathRef=document.getElementById('navArrowPathRef'),navArrow=document.querySelector('.nav-arrow'),navArrowBorder=document.querySelector('.nav-arrow-border'),navArrowHead=document.getElementById('navArrowHead');
+
+function startNavArrow(){
+  if(!navPathRef||!navArrow||!navArrowBorder||!navArrowHead)return;
+  var tl=navPathRef.getTotalLength();
+  [navArrow,navArrowBorder].forEach(function(p){p.style.strokeDasharray=tl;p.style.strokeDashoffset=tl;});
+  navArrowHead.style.opacity='0';navArrowHead.style.transform='translate(0px,0px) rotate(0deg)';
+  var st=performance.now()+500;
+  function step(now){
+    var el=now-st;
+    if(el<0){requestAnimationFrame(step);return;}
+    var rp=Math.min(el/2000,1),prog=1-Math.pow(1-rp,3),cl=tl*prog;
+    navArrow.style.strokeDashoffset=tl-cl;navArrowBorder.style.strokeDashoffset=tl-cl;
+    if(prog>=0.95){
+      var p1=navPathRef.getPointAtLength(Math.max(0,cl-4)),p2=navPathRef.getPointAtLength(Math.min(tl,cl+4));
+      var ang=Math.atan2(p2.y-p1.y,p2.x-p1.x)*(180/Math.PI),ep=navPathRef.getPointAtLength(cl);
+      navArrowHead.style.transform='translate('+ep.x+'px,'+ep.y+'px) rotate('+ang+'deg)';
+      navArrowHead.style.opacity=Math.min(1,(prog-0.95)*20);
+    }else{navArrowHead.style.opacity='0';}
+    if(rp<1)requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function resetNavAnimations(){
+  document.querySelectorAll('.nav-bar,.nav-hex-border').forEach(function(b){b.style.animation='none';b.offsetHeight;b.style.animation='';});
+}
+function runNavCycle(){resetNavAnimations();startNavArrow();}
+setTimeout(runNavCycle,5000);setInterval(runNavCycle,10000);
+
+/* Step sections slide */
+var stepSections=document.querySelectorAll('.step-section');
+var stepObserver=new IntersectionObserver(function(entries){
+  entries.forEach(function(entry){
+    if(entry.isIntersecting && entry.intersectionRatio >= 0.5){
+      entry.target.classList.add('animate-in');
+    }else{
+      entry.target.classList.remove('animate-in');
+    }
+  });
+},{root:mainUI,threshold:[0,0.15,0.3,0.5,0.7,0.9]});
+stepSections.forEach(function(s){stepObserver.observe(s);});
+
+/* Section headers animate */
+var sectionHeaders=document.querySelectorAll('.section-header');
+var headerObserver=new IntersectionObserver(function(entries){
+  entries.forEach(function(entry){
+    if(entry.isIntersecting && entry.intersectionRatio >= 0.4){
+      entry.target.classList.add('animate-in');
+    }else{
+      entry.target.classList.remove('animate-in');
+    }
+  });
+},{root:mainUI,threshold:[0,0.2,0.4,0.6,0.8]});
+sectionHeaders.forEach(function(h){headerObserver.observe(h);});
+
+/* Indicator sections - premium reveal */
+var indicatorSections=document.querySelectorAll('.indicator-section');
+var indSectionObserver=new IntersectionObserver(function(entries){
+  entries.forEach(function(entry){
+    if(entry.isIntersecting && entry.intersectionRatio >= 0.35){
+      entry.target.classList.add('animate-in');
+    }else{
+      entry.target.classList.remove('animate-in');
+    }
+  });
+},{root:mainUI,threshold:[0,0.15,0.25,0.35,0.5,0.7,0.9]});
+indicatorSections.forEach(function(s){indSectionObserver.observe(s);});
+
+/* Modals */
+window.openModal=function(type){
+  document.getElementById(type==='login'?'loginModal':'indicatorsModal').classList.add('active');
+};
+window.closeModal=function(){
+  document.getElementById('loginModal').classList.remove('active');
+  document.getElementById('indicatorsModal').classList.remove('active');
+};
+document.querySelectorAll('.modal-overlay').forEach(function(o){
+  o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('active');});
+});
+
+/* Smooth anchor */
+document.querySelectorAll('a[href^="#"]').forEach(function(a){
+  a.addEventListener('click',function(e){
+    var t=document.querySelector(this.getAttribute('href'));
+    if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth',block:'start'});}
+  });
+});
+
+})();
+</script>
+</body>
+</html>
+
